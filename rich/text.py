@@ -612,7 +612,9 @@ class Text(JupyterMixin):
         append_span = self._spans.append
         _Span = Span
         plain = self.plain
-        for match in re.finditer(re_highlight, plain):
+        if isinstance(re_highlight, str):
+            re_highlight = re.compile(re_highlight)
+        for match in re_highlight.finditer(plain):
             get_span = match.span
             if style:
                 start, end = get_span()
@@ -644,13 +646,14 @@ class Text(JupyterMixin):
         Returns:
             int: Number of words highlighted.
         """
-        re_words = "|".join(re.escape(word) for word in words)
+        re_words = re.compile(
+            "|".join(re.escape(word) for word in words),
+            flags=0 if case_sensitive else re.IGNORECASE
+        )
         add_span = self._spans.append
         count = 0
         _Span = Span
-        for match in re.finditer(
-            re_words, self.plain, flags=0 if case_sensitive else re.IGNORECASE
-        ):
+        for match in re_words.finditer(self.plain):
             start, end = match.span(0)
             add_span(_Span(start, end, style))
             count += 1
@@ -1079,14 +1082,15 @@ class Text(JupyterMixin):
         if separator not in text:
             return Lines([self.copy()])
 
+        re_separator = re.compile(re.escape(separator))
         if include_separator:
             lines = self.divide(
-                match.end() for match in re.finditer(re.escape(separator), text)
+                match.end() for match in re_separator.finditer(text)
             )
         else:
 
             def flatten_spans() -> Iterable[int]:
-                for match in re.finditer(re.escape(separator), text):
+                for match in re_separator.finditer(text):
                     start, end = match.span()
                     yield start
                     yield end
@@ -1266,9 +1270,9 @@ class Text(JupyterMixin):
             int: Number of spaces used to indent code.
         """
 
+        re_ident = re.compile(r"^( *)(.*)$", flags=re.MULTILINE)
         _indentations = {
-            len(match.group(1))
-            for match in re.finditer(r"^( *)(.*)$", self.plain, flags=re.MULTILINE)
+            len(match.group(1)) for match in re_ident.finditer(self.plain)
         }
 
         try:
