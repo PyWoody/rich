@@ -769,14 +769,12 @@ class Syntax(JupyterMixin):
             text (Text): Text instance to apply the style to.
         """
         code = text.plain
+        re_nl = re.compile('\n', flags=re.MULTILINE)
         newlines_offsets = [
             # Let's add outer boundaries at each side of the list:
             0,
             # N.B. using "\n" here is much faster than using metacharacters such as "^" or "\Z":
-            *[
-                match.start() + 1
-                for match in re.finditer("\n", code, flags=re.MULTILINE)
-            ],
+            *[match.start() + 1 for match in re_nl.finditer(code)],
             len(code) + 1,
         ]
 
